@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Time Logs Uploader & Summary Generator</title>
+  <!-- Import a modern Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    /* -------------------------------------
+       CSS Variables for Theme Customization (Light Mode)
+       ------------------------------------- */
+    :root {
+      --bg-color: #f0f4f8;             /* Light mode background */
+      --text-color: #333;              /* Light mode text color */
+      --table-border-color: #d1d9e6;   /* Light mode table borders */
+      --accent-color: #0a66c2;         /* Light mode accent (buttons) */
+      --button-text-color: #fff;       /* Button text */
+      --card-bg: #ffffff;              /* Card background */
+      --shadow: rgba(0, 0, 0, 0.1);      /* Light shadow */
+      --drop-zone-bg: #e9edf5;         /* Drop zone background */
+      --drop-zone-border: #0a66c2;      /* Drop zone border */
+    }
+    
+    /* -------------------------------------
+       Dark Mode: GitHub-inspired Theme
+       ------------------------------------- */
+    body.dark-mode {
+      --bg-color: #0d1117;             /* GitHub dark background */
+      --text-color: #c9d1d9;           /* GitHub dark text */
+      --table-border-color: #30363d;   /* Dark table borders */
+      --accent-color: #58a6ff;         /* GitHub blue accent */
+      --button-text-color: #ffffff;    /* Button text remains white */
+      --card-bg: #161b22;              /* Dark card background */
+      --shadow: rgba(0, 0, 0, 0.5);      /* Stronger shadow for dark mode */
+      --drop-zone-bg: #21262d;         /* Dark drop zone background */
+      --drop-zone-border: #58a6ff;      /* Dark mode drop zone border */
+    }
+    
+    /* -------------------------------------
+       Global Styles
+       ------------------------------------- */
+    body {
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      font-family: 'Poppins', sans-serif;
+      transition: background 0.3s, color 0.3s;
+    }
+    
+    /* Container for centering the content */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    /* -------------------------------------
+       Header & Dark Mode Toggle
+       ------------------------------------- */
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-weight: 600;
+      font-size: 2em;
+      margin: 0;
+    }
+    
+    /* -------------------------------------
+       Card Style for the File Upload Section
+       ------------------------------------- */
+    .upload-card {
+      background: var(--card-bg);
+      box-shadow: 0 4px 8px var(--shadow);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      transition: transform 0.3s;
+    }
+    
+    .upload-card:hover {
+      transform: translateY(-3px);
+    }
+    
+    /* -------------------------------------
+       Drag & Drop Drop Zone Styles
+       ------------------------------------- */
+    .drop-zone {
+      border: 2px dashed var(--drop-zone-border);
+      border-radius: 8px;
+      background: var(--drop-zone-bg);
+      padding: 30px;
+      text-align: center;
+      color: var(--text-color);
+      margin-bottom: 15px;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    
+    .drop-zone.dragover {
+      background: var(--card-bg);
+      border-color: var(--accent-color);
+    }
+    
+    /* -------------------------------------
+       Upload Section Layout
+       ------------------------------------- */
+    .upload-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    input[type="file"] {
+      padding: 10px;
+      border: 2px dashed var(--accent-color);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    
+    input[type="file"]:hover {
+      border-color: var(--accent-color);
+    }
+    
+    button {
+      background-color: var(--accent-color);
+      color: var(--button-text-color);
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: background-color 0.3s, opacity 0.3s;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    /* -------------------------------------
+       Table Styles for Summary Display
+       ------------------------------------- */
+    #resultsTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: var(--card-bg);
+      box-shadow: 0 4px 8px var(--shadow);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    #resultsTable th, #resultsTable td {
+      padding: 12px 15px;
+      border: 1px solid var(--table-border-color);
+      text-align: left;
+    }
+    
+    #resultsTable th {
+      background-color: var(--accent-color);
+      color: var(--button-text-color);
+      font-weight: 600;
+    }
+    
+    /* -------------------------------------
+       Download Button Styling
+       ------------------------------------- */
+    #downloadBtn {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main content container -->
+  <div class="container">
+    <!-- Header section with title and dark mode toggle -->
+    <div class="header-actions">
+      <h1>Time Logs Uploader</h1>
+      <button id="toggleModeBtn">Toggle Dark Mode</button>
+    </div>
+    
+    <!-- File upload card with drag and drop support -->
+    <div class="upload-card">
+      <!-- Drag and Drop Drop Zone -->
+      <div id="dropZone" class="drop-zone">
+        Drag & Drop Excel File Here
+      </div>
+      <div class="upload-section">
+        <!-- File input for Excel files -->
+        <input type="file" id="excelFile" accept=".xlsx, .xls" />
+        <!-- Button to process the selected file -->
+        <button id="processBtn">Process File</button>
+      </div>
+    </div>
+    
+    <!-- Weekly Summary Table -->
+    <h2>Weekly Summary</h2>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Total Hours</th>
+          <th>Gross Pay (₱)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Processed summary rows will be injected here -->
+      </tbody>
+    </table>
+    
+    <!-- Button to download the summary as an Excel file -->
+    <button id="downloadBtn">Download Summary Excel</button>
+  </div>
+
+  <!-- Include SheetJS library for Excel processing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script>
+    // -------------------------------------
+    // Utility Functions (Time Parsing & Formatting)
+    // -------------------------------------
+    
+    // Convert a time string "HH:MM" to minutes since midnight.
+    function timeToMinutes(timeStr) {
+      const parts = timeStr.split(":"); // Split time into hours and minutes.
+      if (parts.length < 2) return 0;     // Return 0 if invalid.
+      return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10); // Total minutes.
+    }
+
+    // Format hours to a string with two decimals followed by " hrs".
+    function formatHours(hours) {
+      return hours.toFixed(2) + " hrs";
+    }
+
+    // Format a number as currency in Pesos with commas and two decimals.
+    function formatCurrency(amount) {
+      return "₱ " + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // Process a cell that may contain multiple in/out time pairs (each separated by newline).
+    // Returns the total hours computed from the cell.
+    function processTimeCell(cell) {
+      let totalMinutes = 0;
+      // Split the cell's content into individual time strings.
+      const parts = cell.toString().split(/\r?\n/);
+      // Iterate over each in/out pair (step by 2).
+      for (let i = 0; i < parts.length; i += 2) {
+        if (i + 1 >= parts.length) break;  // Ensure a complete pair.
+        const clockIn = parts[i].trim();     // Get clock-in time.
+        const clockOut = parts[i + 1].trim();  // Get clock-out time.
+        if (!clockIn || !clockOut) continue;   // Skip if either is missing.
+        const inMins = timeToMinutes(clockIn);
+        const outMins = timeToMinutes(clockOut);
+        let diff = outMins - inMins;           // Calculate difference in minutes.
+        if (diff < 0) diff = 0;                // Correct negative differences.
+        totalMinutes += diff;                // Accumulate minutes.
+      }
+      return totalMinutes / 60;              // Convert minutes to hours.
+    }
+
+    // -------------------------------------
+    // Dark/Light Mode Toggle Functionality
+    // -------------------------------------
+    
+    // Toggle dark mode by adding/removing the "dark-mode" class on the body element.
+    document.getElementById('toggleModeBtn').addEventListener('click', function() {
+      document.body.classList.toggle('dark-mode');
+    });
+
+    // -------------------------------------
+    // Drag and Drop Feature for Excel Files
+    // -------------------------------------
+    
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('excelFile');
+
+    // When a file is dragged over the drop zone, prevent default behavior and add a visual cue.
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    // When a file leaves the drop zone, remove the visual cue.
+    dropZone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+    });
+
+    // When a file is dropped, assign it to the file input.
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length) {
+        fileInput.files = files; // Set the dropped files to the file input.
+      }
+    });
+
+    // -------------------------------------
+    // Main File Processing Logic
+    // -------------------------------------
+    
+    // Process the Excel file when the "Process File" button is clicked.
+    document.getElementById('processBtn').addEventListener('click', function() {
+      if (!fileInput.files.length) {  // Check if a file has been selected or dropped.
+        alert('Please select or drag and drop an Excel file first.');
+        return;
+      }
+
+      const file = fileInput.files[0];   // Get the first file.
+      const reader = new FileReader();     // Create a FileReader instance.
+
+      // When the file is loaded, process its content.
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);  // Convert file to byte array.
+        const workbook = XLSX.read(data, { type: 'array' });  // Parse workbook.
+        const sheetName = workbook.SheetNames[0];  // Use the first sheet.
+        const worksheet = workbook.Sheets[sheetName];  // Get the worksheet.
+
+        // Convert worksheet to a 2D array (include blank rows).
+        const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: true });
+        if (!sheetData || sheetData.length < 6) {  // Check if file structure is valid.
+          alert("The Excel file doesn't have the expected structure.");
+          return;
+        }
+
+        // Array to hold results for each employee.
+        const results = [];
+        /* 
+          Expected File Structure:
+          - Row 1: "feb week 4 2024" (ignore)
+          - Row 2: Date (ignore)
+          - Row 3: Meta (ID, Name, Dept) → Extract name from column 12 (index 11)
+          - Row 4: Date (ignore)
+          - Row 5: Days of the week (ignore)
+          - Row 6: In/Out times for each day
+          This 4-row block repeats for each employee.
+        */
+        for (let i = 2; i < sheetData.length; i += 4) {
+          if (i + 3 >= sheetData.length) break;  // Ensure a complete block exists.
+          const metaRow = sheetData[i];           // Meta row with employee details.
+          const timesRow = sheetData[i + 3];        // Row with in/out time logs.
+          if (!metaRow || metaRow.length === 0) continue;
+
+          // Extract employee name from column 12 (index 11) and convert to uppercase.
+          let empName = metaRow[11] ? metaRow[11].toString().trim() : "Unknown";
+          empName = empName.toUpperCase();
+
+          let totalHours = 0;  // Initialize total hours counter.
+          // Loop through each cell in the times row and sum hours.
+          for (let j = 0; j < timesRow.length; j++) {
+            const cell = timesRow[j];
+            if (cell && cell.toString().trim() !== "") {
+              totalHours += processTimeCell(cell);  // Add hours from this cell.
+            }
+          }
+          const grossPay = totalHours * 50;  // Compute gross pay as total hours × 50.
+
+          // Store the result for this employee.
+          results.push({
+            name: empName,
+            totalHours: totalHours,
+            grossPay: grossPay
+          });
+        }
+
+        // -------------------------------------
+        // Display the Results in the HTML Table
+        // -------------------------------------
+        const tbody = document.querySelector('#resultsTable tbody'); // Get table body.
+        tbody.innerHTML = '';  // Clear previous results.
+        results.forEach(item => {
+          const tr = document.createElement('tr');  // Create new table row.
+          tr.innerHTML = `
+            <td>${item.name}</td>
+            <td>${formatHours(item.totalHours)}</td>
+            <td>${formatCurrency(item.grossPay)}</td>
+          `;
+          tbody.appendChild(tr);  // Append row to table.
+        });
+
+        // -------------------------------------
+        // Generate a New Excel Workbook with Summary Data
+        // -------------------------------------
+        const newWorkbook = XLSX.utils.book_new(); // Create new workbook.
+        const newSheetData = [
+          ["Name", "Total Hours", "Gross Pay (₱)"]  // Header row.
+        ];
+        results.forEach(item => {
+          newSheetData.push([
+            item.name,
+            formatHours(item.totalHours),
+            formatCurrency(item.grossPay)
+          ]);
+        });
+        const newWorksheet = XLSX.utils.aoa_to_sheet(newSheetData);  // Convert array to worksheet.
+        XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Summary');  // Append worksheet.
+
+        // -------------------------------------
+        // Configure and Show the Download Button
+        // -------------------------------------
+        const downloadBtn = document.getElementById('downloadBtn');  // Get download button.
+        downloadBtn.style.display = 'inline-block';  // Make it visible.
+        downloadBtn.onclick = function() {
+          XLSX.writeFile(newWorkbook, 'EmployeeSummary.xlsx');  // Trigger file download.
+        };
+      };
+
+      // Read the file as an ArrayBuffer for SheetJS.
+      reader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>
